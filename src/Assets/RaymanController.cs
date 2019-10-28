@@ -6,6 +6,16 @@ public class RaymanController : MonoBehaviour
 {
     public GameObject Model;
     private CharacterController CharacterController;
+
+    private Vector3 JoystickDirection = new Vector3();
+
+    public Transform TargetPosition;
+
+    private Quaternion SurfaceAngle = new Quaternion();
+    private Quaternion LookingAngle = new Quaternion();
+    private Quaternion TiltAngle = new Quaternion();
+    
+
     private Vector3 desiredMoveDirection;
     private float CurrentSpeed;
     private Vector3 CurrentVelocity;
@@ -24,6 +34,7 @@ public class RaymanController : MonoBehaviour
     public float Gravity = 2;
     public float JumpForce = 2;
     public bool isGliding = false;
+    public bool isAiming = false;
 
     // Start is called before the first frame update
     void Start()
@@ -32,6 +43,7 @@ public class RaymanController : MonoBehaviour
         CharacterController = GetComponent<CharacterController>();
         
     }
+
 
     void SetAnimatorParameters()
     {
@@ -42,14 +54,20 @@ public class RaymanController : MonoBehaviour
         animator.SetBool("IsUsingHelicopter", isGliding);
     }
 
+
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
             Jump();
         else if (Input.GetKeyDown(KeyCode.Space) && !isGrounded && !isGliding)
-            StartGlide();
+            isGliding = true;
         else if (Input.GetKeyDown(KeyCode.Space) && isGliding)
-            EndGlide();
+            isGliding = false;
+
+        if (Input.GetKeyDown(KeyCode.T))
+        {
+            isAiming = !isAiming;
+        }
     }
 
 
@@ -57,19 +75,34 @@ public class RaymanController : MonoBehaviour
     void FixedUpdate()
     {
         GetInput();
-        SetAnimatorParameters();
-
         isGrounded = isRayGrounded();
+
+        UpdateVelocity();
+
+        if (isAiming)
+            MaxSpeed = 5f;
+        else
+            MaxSpeed = 10f;
+
         ApplyGravity();
+        // Rotate the model towards joystick direction
+        //Model.transform.LookAt(transform.position + LastLookedDirection);
+        //Model.transform.eulerAngles = new Vector3(0, Model.transform.eulerAngles.y, 0);
 
         CharacterController.Move(CurrentVelocity * Time.fixedDeltaTime);
+
+        GetLookingAngle();
+        GetSurfaceAngle();
+        
+
+        SetAnimatorParameters();
     }
 
     bool isRayGrounded()
     {
         RaycastHit hit;
 
-        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out hit, 1.1f))
+        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out hit, 1.5f))
         {
             return true;
         }
@@ -79,6 +112,47 @@ public class RaymanController : MonoBehaviour
         }
 
         return false;
+    }
+
+    void GetSurfaceAngle()
+    {
+        
+        RaycastHit hit;
+        if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.down), out hit, 1.1f))
+        {
+            Debug.DrawRay(transform.position, transform.TransformDirection(hit.normal * 2), Color.red);
+
+            var targetRot = Quaternion.FromToRotation(Vector3.up, hit.normal);
+
+            SurfaceAngle = targetRot;
+        }
+        else
+        {
+            SurfaceAngle = Quaternion.FromToRotation(transform.up, transform.up);
+        }
+        
+    }
+
+    void GetLookingAngle()
+    {
+        var lookPos = LastLookedDirection;
+        lookPos.y = 0;
+
+        var targetRot = Quaternion.LookRotation(lookPos);
+        Tilt();
+
+        if (isAiming)
+        {
+            Model.transform.LookAt(TargetPosition);
+
+            Camera.main.GetComponent<CameraFollow>().CenterCamToPlayer();
+        }
+
+        Model.transform.rotation = Quaternion.Slerp(Model.transform.rotation, SurfaceAngle * targetRot, 0.1f);;
+    }
+
+    void Tilt()
+    {
     }
 
     void ApplyGravity()
@@ -97,28 +171,9 @@ public class RaymanController : MonoBehaviour
         YVelocity += JumpForce;
     }
 
-    void StartGlide()
+
+    private void UpdateVelocity()
     {
-        isGliding = true;
-        
-    }
-    void EndGlide()
-    {
-        isGliding = false;
-    }
-
-    private void GetInput()
-    {
-        var joystickX = Input.GetAxisRaw("Horizontal");
-        var joystickY = Input.GetAxisRaw("Vertical");
-
-        // Get joystick angle and convert to angles
-        var joystickAngle = Mathf.Atan2(joystickX, joystickY);
-        var joystickDirection = new Vector3(Mathf.Sin(joystickAngle), 0, Mathf.Cos(joystickAngle));
-
-        if (joystickY == 0)
-            joystickDirection.z = 0;
-
         //assuming we only using the single camera:
         var camera = Camera.main;
 
@@ -128,26 +183,21 @@ public class RaymanController : MonoBehaviour
         forward.y = 0f;
         right.y = 0f;
 
-        // Rotate the model towards joystick direction
-        Model.transform.LookAt(transform.position + LastLookedDirection);
-        Model.transform.eulerAngles = new Vector3(0, Model.transform.eulerAngles.y, 0);
-
-        
 
         // Acceleration
-        SimpleVelocity.x += joystickDirection.x * ACCELERATION;
-        SimpleVelocity.z += joystickDirection.z * ACCELERATION;
+        SimpleVelocity.x += JoystickDirection.x * ACCELERATION;
+        SimpleVelocity.z += JoystickDirection.z * ACCELERATION;
 
         // Deceleration
-        if (joystickDirection.x == 0 && Mathf.Abs(SimpleVelocity.x) > 0)
+        if (JoystickDirection.x == 0 && Mathf.Abs(SimpleVelocity.x) > 0)
             SimpleVelocity.x -= DECELERATION * Mathf.Sign(SimpleVelocity.x);
-        if (joystickDirection.z == 0 && Mathf.Abs(SimpleVelocity.z) > 0)
+        if (JoystickDirection.z == 0 && Mathf.Abs(SimpleVelocity.z) > 0)
             SimpleVelocity.z -= DECELERATION * Mathf.Sign(SimpleVelocity.z);
 
         // Zero snapping
-        if (Mathf.Abs(SimpleVelocity.x) < STOP_TRESHOLD && joystickDirection.x == 0)
+        if (Mathf.Abs(SimpleVelocity.x) < STOP_TRESHOLD && JoystickDirection.x == 0)
             SimpleVelocity.x = 0;
-        if (Mathf.Abs(SimpleVelocity.z) < STOP_TRESHOLD && joystickDirection.z == 0)
+        if (Mathf.Abs(SimpleVelocity.z) < STOP_TRESHOLD && JoystickDirection.z == 0)
             SimpleVelocity.z = 0;
 
         if (Mathf.Abs(SimpleVelocity.x) > MaxSpeed)
@@ -157,18 +207,44 @@ public class RaymanController : MonoBehaviour
 
 
         CurrentVelocity = right * SimpleVelocity.x + forward * SimpleVelocity.z;
-
         CurrentVelocity.y = YVelocity;
-        if ( new Vector2(CurrentVelocity.x, CurrentVelocity.z).magnitude > 0.5)
+    }
+
+    private void GetInput()
+    {
+        var joystickX = Input.GetAxisRaw("Horizontal");
+        var joystickY = Input.GetAxisRaw("Vertical");
+
+        // Get joystick angle and convert to angles
+        var joystickAngle = Mathf.Atan2(joystickX, joystickY);
+        JoystickDirection = new Vector3(Mathf.Sin(joystickAngle), 0, Mathf.Cos(joystickAngle));
+
+        if (joystickY == 0)
+            JoystickDirection.z = 0;
+
+        if ( JoystickDirection.magnitude > 0.5)
         {
-            Debug.Log(CurrentVelocity);
-            LastLookedDirection = CurrentVelocity;
+            var forward = Camera.main.transform.forward;
+            var right = Camera.main.transform.right;
+            forward.y = 0f;
+            right.y = 0f;
+            LastLookedDirection = right * JoystickDirection.x + forward * JoystickDirection.z;
         }
 
         if (isGliding && isGrounded)
-            EndGlide();
+            isGliding = false;
         else if(isGliding && !isGrounded)
             YVelocity = Mathf.Clamp(YVelocity, -1, Mathf.Infinity);
 
+    }
+
+
+    private Vector3 GetGlobalDirection()
+    {
+        var forward = Camera.main.transform.forward;
+        var right = Camera.main.transform.right;
+        forward.y = 0f;
+        right.y = 0f;
+        return right * CurrentVelocity.x + forward * CurrentVelocity.z;
     }
 }
