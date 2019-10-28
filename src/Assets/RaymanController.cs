@@ -52,6 +52,8 @@ public class RaymanController : MonoBehaviour
         animator.SetBool("JumpPressed", jump);
         animator.SetFloat("VerticalSpeedValue", YVelocity);
         animator.SetBool("IsUsingHelicopter", isGliding);
+        animator.SetBool("isTargetting", isAiming);
+        animator.SetFloat("SideDirection", Input.GetAxisRaw("Horizontal"));
     }
 
 
@@ -85,6 +87,7 @@ public class RaymanController : MonoBehaviour
             MaxSpeed = 10f;
 
         ApplyGravity();
+
         // Rotate the model towards joystick direction
         //Model.transform.LookAt(transform.position + LastLookedDirection);
         //Model.transform.eulerAngles = new Vector3(0, Model.transform.eulerAngles.y, 0);
@@ -143,12 +146,15 @@ public class RaymanController : MonoBehaviour
 
         if (isAiming)
         {
-            Model.transform.LookAt(TargetPosition);
+            transform.LookAt(TargetPosition);
 
             Camera.main.GetComponent<CameraFollow>().CenterCamToPlayer();
         }
 
-        Model.transform.rotation = Quaternion.Slerp(Model.transform.rotation, SurfaceAngle * targetRot, 0.1f);;
+        
+
+        transform.rotation = Quaternion.Slerp(Model.transform.rotation, SurfaceAngle * targetRot, 0.1f);
+
     }
 
     void Tilt()
