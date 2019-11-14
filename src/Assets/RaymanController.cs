@@ -153,7 +153,7 @@ public class RaymanController : MonoBehaviour
 
         
 
-        transform.rotation = Quaternion.Slerp(Model.transform.rotation, SurfaceAngle * targetRot, 0.1f);
+        transform.rotation = SurfaceAngle * targetRot;
 
     }
 
@@ -191,13 +191,15 @@ public class RaymanController : MonoBehaviour
 
 
         // Acceleration
-        SimpleVelocity.x += JoystickDirection.x * ACCELERATION;
-        SimpleVelocity.z += JoystickDirection.z * ACCELERATION;
+        SimpleVelocity.x = JoystickDirection.x * ACCELERATION;
+        SimpleVelocity.z = JoystickDirection.z * ACCELERATION;
 
         // Deceleration
         if (JoystickDirection.x == 0 && Mathf.Abs(SimpleVelocity.x) > 0)
+            //SimpleVelocity.x = 0;
             SimpleVelocity.x -= DECELERATION * Mathf.Sign(SimpleVelocity.x);
         if (JoystickDirection.z == 0 && Mathf.Abs(SimpleVelocity.z) > 0)
+            //SimpleVelocity.z = 0;
             SimpleVelocity.z -= DECELERATION * Mathf.Sign(SimpleVelocity.z);
 
         // Zero snapping
@@ -214,6 +216,20 @@ public class RaymanController : MonoBehaviour
 
         CurrentVelocity = right * SimpleVelocity.x + forward * SimpleVelocity.z;
         CurrentVelocity.y = YVelocity;
+    }
+
+    private float getLookingDirectionPartValue(float actualValue)
+    {
+        if (actualValue >= 0.5)
+        {
+            return 1.0f;
+        } else if (actualValue <= -0.5)
+        {
+            return -1.0f;
+        } else
+        {
+            return 0.0f;
+        }
     }
 
     private void GetInput()
@@ -234,7 +250,8 @@ public class RaymanController : MonoBehaviour
             var right = Camera.main.transform.right;
             forward.y = 0f;
             right.y = 0f;
-            LastLookedDirection = right * JoystickDirection.x + forward * JoystickDirection.z;
+            LastLookedDirection = right * (JoystickDirection.x) + 
+                forward * (JoystickDirection.z);
         }
 
         if (isGliding && isGrounded)
@@ -251,6 +268,7 @@ public class RaymanController : MonoBehaviour
         var right = Camera.main.transform.right;
         forward.y = 0f;
         right.y = 0f;
+        //return LastLookedDirection;
         return right * CurrentVelocity.x + forward * CurrentVelocity.z;
     }
 }
