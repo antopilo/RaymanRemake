@@ -127,7 +127,8 @@ public class RaymanController : MonoBehaviour
 
             var targetRot = Quaternion.FromToRotation(Vector3.up, hit.normal);
 
-            SurfaceAngle = targetRot;
+            //SurfaceAngle = targetRot;
+            SurfaceAngle = Quaternion.FromToRotation(transform.up, transform.up);
         }
         else
         {
@@ -149,12 +150,11 @@ public class RaymanController : MonoBehaviour
             transform.LookAt(TargetPosition);
 
             Camera.main.GetComponent<CameraFollow>().CenterCamToPlayer();
-        }
-
-        
-
-        transform.rotation = SurfaceAngle * targetRot;
-
+            //transform.rotation = SurfaceAngle;
+        } else
+        {
+            transform.rotation = SurfaceAngle * targetRot;
+        }        
     }
 
     void Tilt()
@@ -257,7 +257,7 @@ public class RaymanController : MonoBehaviour
         if (isGliding && isGrounded)
             isGliding = false;
         else if(isGliding && !isGrounded)
-            YVelocity = Mathf.Clamp(YVelocity, -1, Mathf.Infinity);
+            YVelocity = Mathf.Clamp(YVelocity, -2, Mathf.Infinity);
 
     }
 
