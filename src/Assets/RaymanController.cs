@@ -59,16 +59,20 @@ public class RaymanController : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space) && isGrounded)
+        if (Input.GetKeyDown(KeyCode.A) && isGrounded)
             Jump();
-        else if (Input.GetKeyDown(KeyCode.Space) && !isGrounded && !isGliding)
+        else if (Input.GetKeyDown(KeyCode.A) && !isGrounded && !isGliding)
             isGliding = true;
-        else if (Input.GetKeyDown(KeyCode.Space) && isGliding)
+        else if (Input.GetKeyDown(KeyCode.A) && isGliding)
             isGliding = false;
 
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyDown(KeyCode.LeftControl))
         {
-            isAiming = !isAiming;
+            isAiming = true;
+        }
+        if (Input.GetKeyUp(KeyCode.LeftControl))
+        {
+            isAiming = false;
         }
     }
 
