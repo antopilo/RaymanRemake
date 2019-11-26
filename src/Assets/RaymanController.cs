@@ -36,6 +36,10 @@ public class RaymanController : MonoBehaviour
     public bool isGliding = false;
     public bool isAiming = false;
 
+    public AudioSource helicopterAudioSource;
+
+    public PlayerSounds playerSounds;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -62,9 +66,15 @@ public class RaymanController : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.A) && isGrounded)
             Jump();
         else if (Input.GetKeyDown(KeyCode.A) && !isGrounded && !isGliding)
+        {
             isGliding = true;
+            helicopterAudioSource.Play();
+        }     
         else if (Input.GetKeyDown(KeyCode.A) && isGliding)
+        {
             isGliding = false;
+            helicopterAudioSource.Stop();
+        }            
 
         if (Input.GetKeyDown(KeyCode.LeftControl))
         {
@@ -179,6 +189,7 @@ public class RaymanController : MonoBehaviour
         YVelocity = 0f;
         jump = true;
         YVelocity += JumpForce;
+        playerSounds.Jump();
     }
 
 
@@ -259,7 +270,11 @@ public class RaymanController : MonoBehaviour
         }
 
         if (isGliding && isGrounded)
+        {
+            helicopterAudioSource.Stop();
             isGliding = false;
+
+        }            
         else if(isGliding && !isGrounded)
             YVelocity = Mathf.Clamp(YVelocity, -2, Mathf.Infinity);
 
